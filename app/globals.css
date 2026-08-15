@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffdf9;
+  --foreground: #16234a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+
+  /* Gold accent, sampled from the DELSORA logo mark */
+  --color-gold-50: #fffaf1;
+  --color-gold-100: #fff4df;
+  --color-gold-200: #ffe8bb;
+  --color-gold-300: #ffdc97;
+  --color-gold-400: #ffd073;
+  --color-gold-500: #ffc44f;
+  --color-gold-600: #d6a23e;
+  --color-gold-700: #ae812d;
+  --color-gold-800: #855f1b;
+  --color-gold-900: #5c3d0a;
+
+  /* Navy neutral, sampled from the business-card gradient */
+  --color-navy-50: #eceef1;
+  --color-navy-100: #d4d8df;
+  --color-navy-200: #a4adbc;
+  --color-navy-300: #738199;
+  --color-navy-400: #435675;
+  --color-navy-500: #16234a;
+  --color-navy-600: #112341;
+  --color-navy-700: #0f1c2f;
+  --color-navy-800: #0d141e;
+  --color-navy-900: #0b0d0c;
+
+  /* Near-black ink, sampled from the logo's own background */
+  --color-ink: #161918;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

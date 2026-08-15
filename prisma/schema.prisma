@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  SELECT
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  invoices     Invoice[]
+  appointments Appointment[]
+  quotes       Quote[]
+}
+
+// Singleton row (id fixed to "singleton") holding business identity + billing config + feature flags
+model BusinessSettings {
+  id String @id @default("singleton")
+
+  businessName   String  @default("DELSORA")
+  tagline        String? @default("Designer Boutique & Makeover Studio")
+  whatsappNumber String  @default("+918921549258")
+  phoneNumber    String?
+  email          String? @default("delsora2017boutique@gamil.com")
+  address        String? @default("Edavanna, Wandoor Road, 676541")
+  logoUrl        String? @default("/logo-full.png")
+  logoMarkUrl    String? @default("/logo-mark.png")
+
+  invoicePrefix        String  @default("DL")
+  invoiceNextNumber    Int     @default(1)
+  invoiceNumberPadding Int     @default(4)
+  invoiceFooterText    String? @default("Thank you for shopping with DELSORA!")
+  showPaymentSeal      Boolean @default(false)
+
+  quotePrefix        String @default("QT")
+  quoteNextNumber    Int    @default(1)
+  quoteNumberPadding Int    @default(4)
+
+  googleSheetsEnabled      Boolean @default(false)
+  googleSheetsSpreadsheetId String?
+
+  whatsappDefaultCountryCode String @default("91")
+
+  // Optional override for building public invoice/quote links — this app runs
+  // on a single local PC by default, so a bare request origin (localhost)
+  // wouldn't be reachable from a customer's phone. Set this to whatever
+  // address actually reaches the machine (LAN IP, tunnel, or real domain).
+  publicBaseUrl String?
+
+  whatsappInvoiceMessageTemplate String @default("Hello {{customer_name}},\n\nThank you for choosing {{business_name}}.\n\nYour invoice has been generated.\n\nInvoice No: {{invoice_number}}\nDate: {{invoice_date}}\nTotal Amount: ₹{{grand_total}}\nPayment Status: {{payment_status}}\n\nView / Download your invoice:\n{{invoice_url}}\n\nThank you for choosing {{business_name}}.\n\n{{business_name}}\n{{business_phone}}")
+  whatsappQuoteMessageTemplate   String @default("Hello {{customer_name}},\n\nThank you for choosing {{business_name}}.\n\nHere is your quote.\n\nQuote No: {{quote_number}}\nDate: {{quote_date}}\nTotal Amount: ₹{{grand_total}}\n\nView your quote:\n{{quote_url}}\n\n{{business_name}}\n{{business_phone}}")
+
+  taxEnabled     Boolean @default(false)
+  taxRatePercent Float   @default(0)
+  taxLabel       String  @default("GST")
+
+  discountDefaultType  String @default("FLAT") // FLAT | PERCENT
+  discountDefaultValue Float  @default(0)
+
+  appointmentsEnabled Boolean @default(true)
+
+  // JSON: { [coreFieldKey]: { required: boolean, visible: boolean } }
+  billingFieldConfig String @default("{}")
+
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  servicesOrProducts ServiceProduct[]
+}
+
+model ServiceProduct {
+  id           String   @id @default(cuid())
+  name         String
+  type         String // "SERVICE" | "PRODUCT"
+  categoryId   String
+  defaultPrice Float
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category     Category      @relation(fields: [categoryId], references: [id])
+  invoiceItems InvoiceItem[]
+  appointments Appointment[]
+  quoteItems   QuoteItem[]
+
+  @@index([categoryId])
+}
+
+model PaymentMethod {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  invoices Invoice[]
+}
+
+model VisitMode {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  invoices     Invoice[]
+  appointments Appointment[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  whatsapp  String   @unique
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices     Invoice[]
+  appointments Appointment[]
+  quotes       Quote[]
+
+  @@index([whatsapp])
+}
+
+// Small admin-defined bolt-on custom billing fields (not a generic form engine)
+model CustomFieldDef {
+  id        String          @id @default(cuid())
+  key       String          @unique
+  label     String
+  type      CustomFieldType
+  options   String? // JSON string array, only meaningful for SELECT
+  required  Boolean         @default(false)
+  active    Boolean         @default(true)
+  sortOrder Int             @default(0)
+}
+
+model Invoice {
+  id            String @id @default(cuid())
+  invoiceNumber String @unique
+  publicToken   String @unique
+
+  customerId    String
+  contactNumber String?
+
+  visitModeId     String
+  paymentMethodId String
+
+  subtotal       Float
+  discountType   String // FLAT | PERCENT
+  discountValue  Float  @default(0)
+  discountAmount Float  @default(0)
+  taxRatePercent Float  @default(0)
+  taxAmount      Float  @default(0)
+  totalAmount    Float
+  amountPaid     Float  @default(0)
+
+  notes        String?
+  customFields String  @default("{}")
+
+  staffId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  visitMode     VisitMode     @relation(fields: [visitModeId], references: [id])
+  paymentMethod PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  staff         User          @relation(fields: [staffId], references: [id])
+  items         InvoiceItem[]
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([staffId])
+}
+
+model InvoiceItem {
+  id                String @id @default(cuid())
+  invoiceId         String
+  serviceProductId  String?
+  nameSnapshot      String
+  categorySnapshot  String?
+  quantity          Float  @default(1)
+  unitPrice         Float
+  lineTotal         Float
+
+  invoice        Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  serviceProduct ServiceProduct? @relation(fields: [serviceProductId], references: [id])
+
+  @@index([invoiceId])
+  @@index([serviceProductId])
+}
+
+model Quote {
+  id          String @id @default(cuid())
+  quoteNumber String @unique
+  publicToken String @unique
+
+  customerId    String?
+  customerName  String
+  whatsapp      String
+  contactNumber String?
+
+  subtotal       Float
+  discountType   String // FLAT | PERCENT
+  discountValue  Float  @default(0)
+  discountAmount Float  @default(0)
+  taxRatePercent Float  @default(0)
+  taxAmount      Float  @default(0)
+  totalAmount    Float
+
+  notes  String?
+  status QuoteStatus @default(DRAFT)
+
+  staffId            String
+  convertedInvoiceId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  staff    User      @relation(fields: [staffId], references: [id])
+  items    QuoteItem[]
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([staffId])
+}
+
+model QuoteItem {
+  id               String @id @default(cuid())
+  quoteId          String
+  serviceProductId String?
+  nameSnapshot     String
+  categorySnapshot String?
+  quantity         Float  @default(1)
+  unitPrice        Float
+  lineTotal        Float
+
+  quote          Quote           @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  serviceProduct ServiceProduct? @relation(fields: [serviceProductId], references: [id])
+
+  @@index([quoteId])
+  @@index([serviceProductId])
+}
+
+model Appointment {
+  id               String   @id @default(cuid())
+  customerId       String?
+  customerName     String
+  whatsapp         String
+  serviceProductId String?
+  serviceName      String
+  date             DateTime
+  time             String
+  staffId          String?
+  visitModeId      String?
+  status           AppointmentStatus @default(BOOKED)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customer       Customer?       @relation(fields: [customerId], references: [id])
+  serviceProduct ServiceProduct? @relation(fields: [serviceProductId], references: [id])
+  staff          User?           @relation(fields: [staffId], references: [id])
+  visitMode      VisitMode?      @relation(fields: [visitModeId], references: [id])
+
+  @@index([date])
+  @@index([customerId])
+}
