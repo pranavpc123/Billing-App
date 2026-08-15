@@ -33,8 +33,12 @@ export async function updateBusinessDetails(formData: FormData) {
     if (value) data[key] = value;
   }
 
+  // Vercel's filesystem is read-only outside /tmp, and /tmp doesn't persist
+  // across invocations — logo uploads only work on a real, writable disk
+  // (i.e. local/self-hosted). The Settings UI hides the file input on
+  // Vercel too; this is the server-side half of that same guard.
   const logo = formData.get("logo");
-  if (logo instanceof File && logo.size > 0) {
+  if (!process.env.VERCEL && logo instanceof File && logo.size > 0) {
     const ext = logo.name.split(".").pop() || "png";
     const filename = `logo-${Date.now()}.${ext}`;
     const uploadsDir = path.join(process.cwd(), "public", "uploads");

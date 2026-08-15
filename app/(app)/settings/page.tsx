@@ -41,9 +41,16 @@ export default async function SettingsPage() {
               {settings.logoUrl && (
                 <Image src={settings.logoUrl} alt="" width={64} height={64} className="rounded-xl" />
               )}
-              <Field label="Logo">
-                <input type="file" name="logo" accept="image/*" className="text-sm" />
-              </Field>
+              {process.env.VERCEL ? (
+                <p className="text-sm text-navy-300">
+                  Logo upload isn&apos;t available on this hosted deployment (no writable disk). Ask
+                  your developer to update the logo file and redeploy.
+                </p>
+              ) : (
+                <Field label="Logo">
+                  <input type="file" name="logo" accept="image/*" className="text-sm" />
+                </Field>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Business Name" required>

@@ -1,6 +1,6 @@
 # DELSORA — Billing & Business Management
 
-A billing and business-management app for DELSORA Designer Boutique & Makeover Studio, built with Next.js, Prisma (SQLite), and NextAuth.
+A billing and business-management app for DELSORA Designer Boutique & Makeover Studio, built with Next.js, Prisma (Postgres), and NextAuth.
 
 ## Running locally
 
@@ -30,7 +30,7 @@ Change these passwords from **Users** once you're ready to go live (an Admin acc
 
 ## Database
 
-SQLite, file-based at `dev.db`. Useful commands:
+Postgres, hosted on Prisma Postgres (`DATABASE_URL` in `.env`). Useful commands:
 
 ```bash
 npm run db:studio   # browse/edit data in Prisma Studio
@@ -38,7 +38,7 @@ npm run db:seed     # re-run the seed script (safe to run multiple times)
 npm run db:reset    # wipe and reseed — destructive, asks for confirmation
 ```
 
-To back up the app's data, just copy `dev.db` somewhere safe.
+Local dev and the deployed app share the same database unless you point `DATABASE_URL` at a different one — see [console.prisma.io](https://console.prisma.io) to manage it (backups, branches, a second database for a separate environment, etc.).
 
 ## Brand assets
 
@@ -65,9 +65,19 @@ Every invoice and quote gets a secure, unguessable link (`/invoice/<number>/<ran
 
 "Send Invoice/Quote on WhatsApp" builds a message from an admin-editable template (Settings → WhatsApp Sharing) containing that link, and opens WhatsApp with it pre-filled — staff review and press Send manually inside WhatsApp. This is deliberately **click-to-chat only**: no Meta WhatsApp API, no Cloud API, no Twilio, no paid integration, and nothing is ever sent without a human pressing Send.
 
-**Public Base URL matters:** this app runs on one PC by default. A `localhost` link only opens on that same PC — a customer's phone can't reach it. For the link to actually work when a customer taps it, either:
-- staff already access the app via this PC's LAN IP (e.g. `http://192.168.1.5:3000`) rather than `localhost`, in which case links work automatically, or
-- set **Public Base URL** in Settings → WhatsApp Sharing to whatever address does reach this machine (LAN IP, a tunnel like ngrok, or a real domain if hosted).
+**Public Base URL matters:** if you're running this locally (not deployed), a `localhost` link only opens on that same PC — a customer's phone can't reach it. Either access the app via this PC's LAN IP (e.g. `http://192.168.1.5:3000`) so links work automatically, or set **Public Base URL** in Settings → WhatsApp Sharing to whatever address does reach it (LAN IP, a tunnel like ngrok). Once deployed (see below), this isn't an issue — the app's real public URL is used automatically.
+
+## Deploying to Vercel
+
+1. Push this repo to GitHub (already done if you're reading this from there).
+2. In the [Vercel dashboard](https://vercel.com/new), import the repo.
+3. Add these environment variables in the Vercel project settings (same values as `.env` locally):
+   - `DATABASE_URL` — the Prisma Postgres connection string
+   - `AUTH_SECRET` — generate a fresh one for production with `npx auth secret`, don't reuse the local dev one
+   - Optionally `GOOGLE_SHEETS_CLIENT_EMAIL` / `GOOGLE_SHEETS_PRIVATE_KEY` if you use Sheets sync
+4. Deploy. Vercel runs `npm run build`, which includes `postinstall: prisma generate`.
+
+**Known limitation on Vercel:** the Settings → Logo upload is disabled there (Vercel's serverless functions have no writable/persistent disk) — the deployed app uses the DELSORA logo already committed to `public/`. To change it, update the file in the repo and redeploy, or ask your developer to.
 
 ## Known limitations
 
