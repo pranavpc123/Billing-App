@@ -4,6 +4,8 @@ import { can } from "@/lib/permissions";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CreateUserForm } from "./CreateUserForm";
 import { RoleSelect } from "./RoleSelect";
+import { UserEditForm } from "./UserEditForm";
+import { DeleteUserButton } from "./DeleteUserButton";
 import { toggleUserActive, updateUserRole } from "./_actions";
 
 export default async function UsersPage() {
@@ -49,6 +51,8 @@ export default async function UsersPage() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Update</th>
+                <th className="px-4 py-3 font-medium">Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -79,6 +83,12 @@ export default async function UsersPage() {
                           {u.active ? "Active" : "Inactive"}
                         </button>
                       </form>
+                    </td>
+                    <td className="px-4 py-3">
+                      <UserEditForm userId={u.id} name={u.name} email={u.email} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DeleteUserButton userId={u.id} disabled={isSelf} />
                     </td>
                   </tr>
                 );

@@ -7,6 +7,7 @@ export type Resource =
   | "customers.edit"
   | "invoices.viewAll"
   | "invoices.viewOwn"
+  | "invoices.edit"
   | "quotes.viewAll"
   | "quotes.viewOwn"
   | "appointments.view"
@@ -24,6 +25,7 @@ const MATRIX: Record<Resource, Role[]> = {
   "customers.edit": ["ADMIN", "MANAGER"],
   "invoices.viewAll": ["ADMIN", "MANAGER"],
   "invoices.viewOwn": ["ADMIN", "MANAGER", "STAFF"],
+  "invoices.edit": ["ADMIN", "MANAGER"],
   "quotes.viewAll": ["ADMIN", "MANAGER"],
   "quotes.viewOwn": ["ADMIN", "MANAGER", "STAFF"],
   "appointments.view": ["ADMIN", "MANAGER", "STAFF"],

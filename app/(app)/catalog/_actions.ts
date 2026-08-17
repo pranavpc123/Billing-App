@@ -57,3 +57,13 @@ export async function updateServiceProduct(serviceProductId: string, formData: F
   revalidatePath("/catalog");
   revalidatePath("/billing/new");
 }
+
+export async function deleteServiceProduct(serviceProductId: string) {
+  await requireCatalogEdit();
+  // Past invoice/quote/appointment line items keep their own name/price snapshot
+  // and only lose the FK reference (schema: onDelete SetNull), so this is safe
+  // even for products with billing history.
+  await prisma.serviceProduct.delete({ where: { id: serviceProductId } });
+  revalidatePath("/catalog");
+  revalidatePath("/billing/new");
+}

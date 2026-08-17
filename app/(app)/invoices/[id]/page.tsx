@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { getInvoiceForDisplay } from "@/lib/invoice-data";
 import { getPublicBaseUrl } from "@/lib/public-url";
 import { renderTemplate } from "@/lib/template";
@@ -8,6 +10,7 @@ import { getPaymentStatus, PAYMENT_STATUS_LABEL } from "@/lib/payment-status";
 import { InvoiceView } from "@/components/invoice/InvoiceView";
 import { InvoiceActions } from "@/components/invoice/InvoiceActions";
 import { RecordPaymentForm } from "@/components/invoice/RecordPaymentForm";
+import { Button } from "@/components/ui/Button";
 
 export default async function InvoiceDetailPage({
   params,
@@ -54,6 +57,13 @@ export default async function InvoiceDetailPage({
         <h1 className="font-serif text-2xl font-semibold text-navy-500">
           Invoice {invoice.invoiceNumber}
         </h1>
+        {can(session?.user.role, "invoices.edit") && (
+          <Link href={`/invoices/${invoice.id}/edit`}>
+            <Button type="button" variant="secondary" size="sm">
+              Edit Invoice
+            </Button>
+          </Link>
+        )}
       </div>
       <InvoiceActions
         invoiceId={invoice.id}

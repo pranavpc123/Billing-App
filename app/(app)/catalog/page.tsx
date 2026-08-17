@@ -5,9 +5,11 @@ import { formatMoney } from "@/lib/money";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import {
   createCategory,
   createServiceProduct,
+  deleteServiceProduct,
   toggleCategoryActive,
   updateServiceProduct,
 } from "./_actions";
@@ -163,6 +165,11 @@ function ServiceProductEditForm({
     await updateServiceProduct(serviceProduct.id, formData);
   }
 
+  async function removeAction() {
+    "use server";
+    await deleteServiceProduct(serviceProduct.id);
+  }
+
   return (
     <details>
       <summary className="cursor-pointer text-navy-400 hover:text-navy-500">Edit</summary>
@@ -194,6 +201,15 @@ function ServiceProductEditForm({
         <Button type="submit" size="sm" variant="secondary">
           Save
         </Button>
+      </form>
+      <form action={removeAction} className="mt-2">
+        <ConfirmSubmitButton
+          confirmMessage={`Delete "${serviceProduct.name}" from the catalog? This cannot be undone.`}
+          size="sm"
+          variant="danger"
+        >
+          Delete
+        </ConfirmSubmitButton>
       </form>
     </details>
   );

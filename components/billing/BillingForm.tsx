@@ -14,6 +14,7 @@ import {
   lookupCustomerByWhatsapp,
   type CustomerLookupResult,
 } from "@/app/(app)/billing/new/_actions";
+import { updateInvoice } from "@/app/(app)/invoices/_actions";
 
 type CatalogItem = {
   id: string;
@@ -40,6 +41,22 @@ type CustomFieldDef = {
   options: string[];
 };
 
+export type EditInvoiceData = {
+  invoiceId: string;
+  customerName: string;
+  whatsapp: string;
+  contactNumber: string;
+  email: string;
+  notes: string;
+  items: LineItem[];
+  discountType: string;
+  discountValue: number;
+  paymentMethodId: string;
+  visitModeId: string;
+  customFieldValues: Record<string, string>;
+  amountPaid: number;
+};
+
 export function BillingForm({
   catalog,
   paymentMethods,
@@ -52,6 +69,7 @@ export function BillingForm({
   discountDefaultType,
   discountDefaultValue,
   defaultCountryCode,
+  editInvoice,
 }: {
   catalog: CatalogItem[];
   paymentMethods: { id: string; name: string }[];
@@ -64,24 +82,36 @@ export function BillingForm({
   discountDefaultType: string;
   discountDefaultValue: number;
   defaultCountryCode: string;
+  editInvoice?: EditInvoiceData;
 }) {
   const router = useRouter();
+  const isEditing = !!editInvoice;
 
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(editInvoice?.customerName ?? "");
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
   const [whatsappLocal, setWhatsappLocal] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<LineItem[]>([]);
+  const [contactNumber, setContactNumber] = useState(editInvoice?.contactNumber ?? "");
+  const [email, setEmail] = useState(editInvoice?.email ?? "");
+  const [notes, setNotes] = useState(editInvoice?.notes ?? "");
+  const [items, setItems] = useState<LineItem[]>(editInvoice?.items ?? []);
   const [selectedCatalogId, setSelectedCatalogId] = useState("");
-  const [discountType, setDiscountType] = useState(discountDefaultType);
-  const [discountValue, setDiscountValue] = useState(discountDefaultValue);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0]?.id ?? "");
-  const [visitModeId, setVisitModeId] = useState(visitModes[0]?.id ?? "");
+  const [discountType, setDiscountType] = useState(editInvoice?.discountType ?? discountDefaultType);
+  const [discountValue, setDiscountValue] = useState(
+    editInvoice?.discountValue ?? discountDefaultValue
+  );
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>(
+    editInvoice?.customFieldValues ?? {}
+  );
+  const [paymentMethodId, setPaymentMethodId] = useState(
+    editInvoice?.paymentMethodId ?? paymentMethods[0]?.id ?? ""
+  );
+  const [visitModeId, setVisitModeId] = useState(
+    editInvoice?.visitModeId ?? visitModes[0]?.id ?? ""
+  );
   // null = not manually touched, so it tracks the computed total (fully paid, today's default)
-  const [amountReceived, setAmountReceived] = useState<number | null>(null);
+  const [amountReceived, setAmountReceived] = useState<number | null>(
+    editInvoice?.amountPaid ?? null
+  );
 
   const [lookup, setLookup] = useState<CustomerLookupResult>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -96,6 +126,7 @@ export function BillingForm({
   );
 
   useEffect(() => {
+    if (isEditing) return;
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
     lookupTimer.current = setTimeout(async () => {
       if (whatsappLocal.trim().length < 6) {
@@ -114,7 +145,7 @@ export function BillingForm({
     return () => {
       if (lookupTimer.current) clearTimeout(lookupTimer.current);
     };
-  }, [whatsapp, whatsappLocal]);
+  }, [whatsapp, whatsappLocal, isEditing]);
 
   function addItem() {
     const catalogItem = catalog.find((c) => c.id === selectedCatalogId);
@@ -162,7 +193,7 @@ export function BillingForm({
     setError(null);
 
     if (!customerName.trim()) return setError("Customer name is required.");
-    if (fieldConfig.whatsapp.required && !whatsapp.trim())
+    if (!isEditing && fieldConfig.whatsapp.required && !whatsapp.trim())
       return setError("WhatsApp number is required.");
     if (items.length === 0) return setError("Add at least one service or product.");
     if (!paymentMethodId) return setError("Select a payment method.");
@@ -175,7 +206,7 @@ export function BillingForm({
 
     const formData = new FormData();
     formData.set("customerName", customerName.trim());
-    formData.set("whatsapp", whatsapp);
+    if (!isEditing) formData.set("whatsapp", whatsapp);
     formData.set("contactNumber", contactNumber.trim());
     formData.set("email", email.trim());
     formData.set("notes", notes.trim());
@@ -199,6 +230,18 @@ export function BillingForm({
     formData.set("customFields", JSON.stringify(customFieldValues));
 
     setSubmitting(true);
+
+    if (isEditing) {
+      const result = await updateInvoice(editInvoice.invoiceId, formData);
+      setSubmitting(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.push(`/invoices/${editInvoice.invoiceId}`);
+      return;
+    }
+
     const result = await createInvoice(formData);
     setSubmitting(false);
 
@@ -233,25 +276,34 @@ export function BillingForm({
                   WhatsApp Number
                   {fieldConfig.whatsapp.required && <span className="ml-0.5 text-gold-700">*</span>}
                 </label>
-                <div className="flex gap-2">
-                  <div className="w-28 shrink-0">
-                    <Select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
-                      {COUNTRY_CODES.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          +{c.code}
-                        </option>
-                      ))}
-                    </Select>
+                {isEditing ? (
+                  <>
+                    <Input value={`+${editInvoice.whatsapp}`} disabled />
+                    <p className="mt-1 text-xs text-navy-300">
+                      WhatsApp number can&apos;t be changed on an existing invoice.
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="w-28 shrink-0">
+                      <Select value={countryCode} onChange={(e) => setCountryCode(e.target.value)}>
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            +{c.code}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        value={whatsappLocal}
+                        onChange={(e) => setWhatsappLocal(e.target.value)}
+                        placeholder="9xxxxxxxxx"
+                        inputMode="tel"
+                      />
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <Input
-                      value={whatsappLocal}
-                      onChange={(e) => setWhatsappLocal(e.target.value)}
-                      placeholder="9xxxxxxxxx"
-                      inputMode="tel"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             )}
             {fieldConfig.customerName.visible && (
@@ -622,7 +674,7 @@ export function BillingForm({
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-          {submitting ? "Saving…" : "Complete Sale"}
+          {submitting ? "Saving…" : isEditing ? "Save Changes" : "Complete Sale"}
         </Button>
       </div>
     </form>
