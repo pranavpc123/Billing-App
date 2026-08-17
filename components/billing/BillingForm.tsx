@@ -323,7 +323,74 @@ export function BillingForm({
                 No items added yet.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                {/* Mobile: stacked cards (a 6-column table has no usable narrow layout) */}
+                <div className="space-y-3 md:hidden">
+                  {items.map((item) => (
+                    <div
+                      key={item.localId}
+                      className="rounded-xl border border-navy-100 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-navy-500">{item.name}</p>
+                          <p className="text-xs text-navy-300">{item.category}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.localId)}
+                          className="shrink-0 text-navy-300 hover:text-red-600"
+                          aria-label="Remove item"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <Field label="Qty">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            step="1"
+                            value={item.quantity}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) =>
+                              updateItem(item.localId, { quantity: Number(e.target.value) || 0 })
+                            }
+                            onBlur={() => {
+                              if (!item.quantity || item.quantity < 1)
+                                updateItem(item.localId, { quantity: 1 });
+                            }}
+                            className="px-3 py-2"
+                          />
+                        </Field>
+                        <Field label="Price">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.01"
+                            value={item.unitPrice}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) =>
+                              updateItem(item.localId, { unitPrice: Number(e.target.value) || 0 })
+                            }
+                            className="px-3 py-2"
+                          />
+                        </Field>
+                      </div>
+                      <div className="mt-2 flex justify-between text-sm text-navy-400">
+                        <span>Amount</span>
+                        <span className="font-medium text-navy-500">
+                          {formatMoney(item.quantity * item.unitPrice)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop/tablet: full table */}
+                <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-navy-100 text-left text-navy-300">
@@ -343,21 +410,29 @@ export function BillingForm({
                         <td className="py-2 pr-2">
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min={1}
                             step="1"
                             value={item.quantity}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
-                              updateItem(item.localId, { quantity: Number(e.target.value) || 1 })
+                              updateItem(item.localId, { quantity: Number(e.target.value) || 0 })
                             }
+                            onBlur={() => {
+                              if (!item.quantity || item.quantity < 1)
+                                updateItem(item.localId, { quantity: 1 });
+                            }}
                             className="px-2 py-1.5"
                           />
                         </td>
                         <td className="py-2 pr-2">
                           <Input
                             type="number"
+                            inputMode="decimal"
                             min={0}
                             step="0.01"
                             value={item.unitPrice}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) =>
                               updateItem(item.localId, { unitPrice: Number(e.target.value) || 0 })
                             }
@@ -381,7 +456,8 @@ export function BillingForm({
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </CardBody>
         </Card>
