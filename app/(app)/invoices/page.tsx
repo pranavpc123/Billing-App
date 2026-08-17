@@ -3,12 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { formatMoney } from "@/lib/money";
-import {
-  getPaymentStatus,
-  PAYMENT_STATUS_CLASSES,
-  PAYMENT_STATUS_LABEL,
-  type PaymentStatus,
-} from "@/lib/payment-status";
+import { getPaymentStatus, PAYMENT_STATUS_CLASSES, PAYMENT_STATUS_LABEL } from "@/lib/payment-status";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -84,7 +79,7 @@ export default async function InvoicesPage({
             <Input type="date" name="from" defaultValue={sp.from} />
             <Input type="date" name="to" defaultValue={sp.to} />
             <Select name="paymentMethodId" defaultValue={sp.paymentMethodId ?? ""}>
-              <option value="">All payment methods</option>
+              <option value="">All Methods</option>
               {paymentMethods.map((pm) => (
                 <option key={pm.id} value={pm.id}>
                   {pm.name}
@@ -92,7 +87,7 @@ export default async function InvoicesPage({
               ))}
             </Select>
             <Select name="visitModeId" defaultValue={sp.visitModeId ?? ""}>
-              <option value="">All modes</option>
+              <option value="">All Modes</option>
               {visitModes.map((vm) => (
                 <option key={vm.id} value={vm.id}>
                   {vm.name}
@@ -100,7 +95,7 @@ export default async function InvoicesPage({
               ))}
             </Select>
             <Select name="status" defaultValue={sp.status ?? ""}>
-              <option value="">All payment statuses</option>
+              <option value="">All Statuses</option>
               <option value="PAID">Paid</option>
               <option value="PARTIAL">Partial</option>
               <option value="PENDING">Pending</option>
@@ -117,7 +112,44 @@ export default async function InvoicesPage({
         </CardBody>
       </Card>
 
-      <Card className="mt-6">
+      {/* Mobile: compact card list (a 10-column table has no good narrow layout) */}
+      <div className="mt-6 divide-y divide-navy-50 rounded-2xl border border-navy-100 bg-white md:hidden">
+        {invoices.map((inv) => {
+          const status = getPaymentStatus(inv.totalAmount, inv.amountPaid);
+          return (
+            <Link
+              key={inv.id}
+              href={`/invoices/${inv.id}`}
+              className="block px-4 py-3 active:bg-navy-50/60"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-navy-500">{inv.invoiceNumber}</span>
+                <span className="font-medium text-navy-500">{formatMoney(inv.totalAmount)}</span>
+              </div>
+              <div className="mt-0.5 flex items-center justify-between gap-2 text-sm text-navy-400">
+                <span className="truncate">{inv.customer.name}</span>
+                <span className="shrink-0">{new Date(inv.createdAt).toLocaleDateString("en-IN")}</span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_STATUS_CLASSES[status]}`}
+                >
+                  {PAYMENT_STATUS_LABEL[status]}
+                </span>
+                <span className="text-xs text-navy-300">
+                  {inv.paymentMethod.name} · {inv.visitMode.name}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+        {invoices.length === 0 && (
+          <p className="px-4 py-10 text-center text-navy-300">No invoices found.</p>
+        )}
+      </div>
+
+      {/* Desktop/tablet: full table */}
+      <Card className="mt-6 hidden md:block">
         <CardBody className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
@@ -135,41 +167,39 @@ export default async function InvoicesPage({
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b border-navy-50 hover:bg-navy-50/40">
-                  <td className="px-4 py-3">
-                    <Link href={`/invoices/${inv.id}`} className="font-medium text-navy-500 hover:underline">
-                      {inv.invoiceNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-navy-400">
-                    {new Date(inv.createdAt).toLocaleDateString("en-IN")}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">{inv.customer.name}</td>
-                  <td className="px-4 py-3 text-navy-400">{inv.customer.whatsapp}</td>
-                  <td className="px-4 py-3 text-navy-400">
-                    {inv.items.map((it) => it.nameSnapshot).join(", ")}
-                  </td>
-                  <td className="px-4 py-3 text-right text-navy-500">
-                    {formatMoney(inv.totalAmount)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const status: PaymentStatus = getPaymentStatus(inv.totalAmount, inv.amountPaid);
-                      return (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_STATUS_CLASSES[status]}`}
-                        >
-                          {PAYMENT_STATUS_LABEL[status]}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-4 py-3 text-navy-400">{inv.paymentMethod.name}</td>
-                  <td className="px-4 py-3 text-navy-400">{inv.visitMode.name}</td>
-                  <td className="px-4 py-3 text-navy-400">{inv.staff.name}</td>
-                </tr>
-              ))}
+              {invoices.map((inv) => {
+                const status = getPaymentStatus(inv.totalAmount, inv.amountPaid);
+                return (
+                  <tr key={inv.id} className="border-b border-navy-50 hover:bg-navy-50/40">
+                    <td className="px-4 py-3">
+                      <Link href={`/invoices/${inv.id}`} className="font-medium text-navy-500 hover:underline">
+                        {inv.invoiceNumber}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-navy-400">
+                      {new Date(inv.createdAt).toLocaleDateString("en-IN")}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">{inv.customer.name}</td>
+                    <td className="px-4 py-3 text-navy-400">{inv.customer.whatsapp}</td>
+                    <td className="px-4 py-3 text-navy-400">
+                      {inv.items.map((it) => it.nameSnapshot).join(", ")}
+                    </td>
+                    <td className="px-4 py-3 text-right text-navy-500">
+                      {formatMoney(inv.totalAmount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_STATUS_CLASSES[status]}`}
+                      >
+                        {PAYMENT_STATUS_LABEL[status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-navy-400">{inv.paymentMethod.name}</td>
+                    <td className="px-4 py-3 text-navy-400">{inv.visitMode.name}</td>
+                    <td className="px-4 py-3 text-navy-400">{inv.staff.name}</td>
+                  </tr>
+                );
+              })}
               {invoices.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-10 text-center text-navy-300">

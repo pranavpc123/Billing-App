@@ -80,7 +80,34 @@ export default async function QuotesPage({
         </CardBody>
       </Card>
 
-      <Card className="mt-6">
+      {/* Mobile: compact card list */}
+      <div className="mt-6 divide-y divide-navy-50 rounded-2xl border border-navy-100 bg-white md:hidden">
+        {quotes.map((q) => (
+          <Link key={q.id} href={`/quotes/${q.id}`} className="block px-4 py-3 active:bg-navy-50/60">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium text-navy-500">{q.quoteNumber}</span>
+              <span className="font-medium text-navy-500">{formatMoney(q.totalAmount)}</span>
+            </div>
+            <div className="mt-0.5 flex items-center justify-between gap-2 text-sm text-navy-400">
+              <span className="truncate">{q.customerName}</span>
+              <span className="shrink-0">{new Date(q.createdAt).toLocaleDateString("en-IN")}</span>
+            </div>
+            <div className="mt-2">
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[q.status]}`}
+              >
+                {q.status}
+              </span>
+            </div>
+          </Link>
+        ))}
+        {quotes.length === 0 && (
+          <p className="px-4 py-10 text-center text-navy-300">No quotes found.</p>
+        )}
+      </div>
+
+      {/* Desktop/tablet: full table */}
+      <Card className="mt-6 hidden md:block">
         <CardBody className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>

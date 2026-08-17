@@ -32,11 +32,23 @@ export function AppHeader({
     <header className="sticky top-0 z-20 border-b border-navy-100 bg-white/95 backdrop-blur print:hidden">
       <div className="flex items-center justify-between px-4 py-3 md:px-6">
         <button
-          className="flex items-center gap-2 md:hidden"
+          className="flex items-center gap-2.5 md:hidden"
           onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle menu"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
         >
-          <Image src="/logo-mark.png" alt="" width={32} height={32} className="rounded-lg" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-navy-200 text-navy-500">
+            {open ? (
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M2 2L16 16M16 2L2 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                <path d="M2 4.5H16M2 9H16M2 13.5H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
+          </span>
+          <Image src="/logo-mark.png" alt="" width={28} height={28} className="rounded-lg" />
           <span className="font-serif text-base font-semibold text-navy-500">
             {businessName}
           </span>

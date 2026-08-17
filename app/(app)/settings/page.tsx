@@ -37,9 +37,15 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardBody>
           <form action={updateBusinessDetails} className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               {settings.logoUrl && (
-                <Image src={settings.logoUrl} alt="" width={64} height={64} className="rounded-xl" />
+                <Image
+                  src={settings.logoUrl}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="rounded-xl"
+                />
               )}
               {process.env.VERCEL ? (
                 <p className="text-sm text-navy-300">
@@ -48,7 +54,12 @@ export default async function SettingsPage() {
                 </p>
               ) : (
                 <Field label="Logo">
-                  <input type="file" name="logo" accept="image/*" className="text-sm" />
+                  <input
+                    type="file"
+                    name="logo"
+                    accept="image/*"
+                    className="block w-full max-w-full text-sm"
+                  />
                 </Field>
               )}
             </div>
